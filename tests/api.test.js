@@ -132,10 +132,12 @@ test("launch request returns a valid Alice greeting without external API keys", 
 test("Yandex session user memory is sent to Gemini and saved across sessions", async () => {
   const handler = (await import("../api/index.js")).default;
   const previousApiKey = process.env.GEMINI_API_KEY;
+  const previousModel = process.env.GEMINI_MODEL;
   const previousRedisUrl = process.env.UPSTASH_REDIS_REST_URL;
   const previousRedisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
   const previousFetch = globalThis.fetch;
   process.env.GEMINI_API_KEY = "test-key";
+  delete process.env.GEMINI_MODEL;
   process.env.UPSTASH_REDIS_REST_URL = "https://redis.test";
   process.env.UPSTASH_REDIS_REST_TOKEN = "redis-test-token";
 
@@ -191,6 +193,11 @@ test("Yandex session user memory is sent to Gemini and saved across sessions", a
       role: "user",
       parts: [{ text: "Меня зовут Анна" }]
     });
+    assert.deepEqual(geminiBody.generationConfig, {
+      temperature: 0.5,
+      maxOutputTokens: 512,
+      thinkingConfig: { thinkingLevel: "medium" }
+    });
     assert.deepEqual(redisCommands.map(command => command[0]), ["GET", "SET"]);
     assert.match(redisCommands[0][1], /^alice:memory:[a-f0-9]{64}$/);
     assert.ok(!redisCommands[0][1].includes("yandex-user-1"));
@@ -212,6 +219,8 @@ test("Yandex session user memory is sent to Gemini and saved across sessions", a
     globalThis.fetch = previousFetch;
     if (previousApiKey === undefined) delete process.env.GEMINI_API_KEY;
     else process.env.GEMINI_API_KEY = previousApiKey;
+    if (previousModel === undefined) delete process.env.GEMINI_MODEL;
+    else process.env.GEMINI_MODEL = previousModel;
     if (previousRedisUrl === undefined) delete process.env.UPSTASH_REDIS_REST_URL;
     else process.env.UPSTASH_REDIS_REST_URL = previousRedisUrl;
     if (previousRedisToken === undefined) delete process.env.UPSTASH_REDIS_REST_TOKEN;
