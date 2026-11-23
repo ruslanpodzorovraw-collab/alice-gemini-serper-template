@@ -129,7 +129,7 @@ test("launch request returns a valid Alice greeting without external API keys", 
   assert.equal(payload.response.end_session, false);
 });
 
-test("authorized user memory is sent to Gemini and saved across sessions", async () => {
+test("Yandex session user memory is sent to Gemini and saved across sessions", async () => {
   const handler = (await import("../api/index.js")).default;
   const previousApiKey = process.env.GEMINI_API_KEY;
   const previousRedisUrl = process.env.UPSTASH_REDIS_REST_URL;
@@ -182,7 +182,7 @@ test("authorized user memory is sent to Gemini and saved across sessions", async
       method: "POST",
       body: {
         request: { command: "Как меня зовут?" },
-        session: { user: { user_id: "yandex-user-1" } },
+        session: { user_id: "yandex-user-1" },
         state: { session: { history: [] } }
       }
     }, res);
@@ -202,11 +202,12 @@ test("authorized user memory is sent to Gemini and saved across sessions", async
       { role: "user", text: "Как меня зовут?" },
       { role: "model", text: "Рада снова вас видеть, Анна." }
     ]);
-    assert.deepEqual(payload.user_state_update.history.slice(-2), [
+    assert.deepEqual(payload.session_state.history.slice(-2), [
       { role: "user", text: "Как меня зовут?" },
       { role: "model", text: "Рада снова вас видеть, Анна." }
     ]);
-    assert.ok(Buffer.byteLength(JSON.stringify(payload.user_state_update), "utf8") <= 1024);
+    assert.equal(payload.user_state_update, undefined);
+    assert.ok(Buffer.byteLength(JSON.stringify(payload.session_state), "utf8") <= 1024);
   } finally {
     globalThis.fetch = previousFetch;
     if (previousApiKey === undefined) delete process.env.GEMINI_API_KEY;
@@ -243,7 +244,10 @@ test("authorized user can clear persisted and current-session memory", async () 
       method: "POST",
       body: {
         request: { command: "Забудь наши прошлые диалоги" },
-        session: { user: { user_id: "yandex-user-1" } },
+        session: {
+          user_id: "stable-yandex-user-id",
+          user: { user_id: "linked-account-id" }
+        },
         state: {
           session: { history: [{ role: "user", text: "Секретный текст" }] },
           user: { history: [{ role: "user", text: "Секретный текст" }] }

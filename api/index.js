@@ -114,6 +114,13 @@ function hasAuthorizedYandexUser(body) {
   return typeof body?.session?.user?.user_id === "string" && body.session.user.user_id.length > 0;
 }
 
+function persistentUserId(body) {
+  const sessionUserId = body?.session?.user_id;
+  if (typeof sessionUserId === "string" && sessionUserId.length > 0) return sessionUserId;
+  const linkedUserId = body?.session?.user?.user_id;
+  return typeof linkedUserId === "string" && linkedUserId.length > 0 ? linkedUserId : null;
+}
+
 function userStateUpdate(body, history) {
   return hasAuthorizedYandexUser(body) ? { history: safeHistory(history) } : undefined;
 }
@@ -419,13 +426,14 @@ export default async function handler(req, res) {
   const text = String(body?.request?.command || body?.request?.original_utterance || "").trim();
   let oldHistory = historyFromState(body);
   let persistentMemory = null;
+  const memoryUserId = persistentUserId(body);
 
   if (isForgetMemoryRequest(text)) {
     let memoryDeleted = true;
-    if (hasAuthorizedYandexUser(body) && hasPersistentMemoryConfig()) {
+    if (memoryUserId && hasPersistentMemoryConfig()) {
       try {
         await redisCommand(
-          ["DEL", persistentMemoryKey(body.session.user.user_id)],
+          ["DEL", persistentMemoryKey(memoryUserId)],
           Math.min(MEMORY_STORE_TIMEOUT_MS, Math.max(100, remainingMs() - 150))
         );
       } catch {
@@ -454,10 +462,10 @@ export default async function handler(req, res) {
     ));
   }
 
-  if (text && hasAuthorizedYandexUser(body) && hasPersistentMemoryConfig()) {
+  if (memoryUserId && hasPersistentMemoryConfig()) {
     try {
       const loadTimeout = Math.min(MEMORY_STORE_TIMEOUT_MS, Math.max(100, remainingMs() - 3500));
-      persistentMemory = await loadPersistentMemory(body.session.user.user_id, loadTimeout);
+      persistentMemory = await loadPersistentMemory(memoryUserId, loadTimeout);
       oldHistory = persistentMemory.messages.length
         ? selectRelevantHistory(persistentMemory.messages, text)
         : historyFromState(body);
