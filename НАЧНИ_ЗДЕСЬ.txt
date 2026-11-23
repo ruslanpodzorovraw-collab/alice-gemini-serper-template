@@ -10,12 +10,15 @@
 5. Нажмите Commit changes.
 6. Войдите на vercel.com, нажмите Add New… → Project и импортируйте свой репозиторий.
 7. В Vercel откройте Project → Settings → Environment Variables и добавьте:
-   GEMINI_API_KEY — ключ Google AI Studio.
-   SERPER_API_KEY — ключ Serper.
-   Для обеих переменных выберите Production.
+    GEMINI_API_KEY — ключ Google AI Studio.
+    SERPER_API_KEY — ключ Serper.
+    Для долгосрочной памяти создайте бесплатную Redis-базу на https://console.upstash.com/ и добавьте UPSTASH_REDIS_REST_URL и UPSTASH_REDIS_REST_TOKEN из её раздела REST API.
+    Для всех переменных выберите Production.
 8. После сохранения переменных откройте Deployments, сделайте Redeploy и дождитесь статуса Ready.
 9. Откройте Settings → Domains, скопируйте свой домен Vercel, добавьте /api и вставьте полный адрес в поле Webhook URL в настройках навыка Яндекс Диалогов.
 10. Включите «Использовать хранилище данных в навыке», если хотите сохранять контекст между репликами.
+
+Долгосрочная память хранит тексты разговоров до 30 дней (не более 500 последних реплик) и требует UPSTASH_REDIS_REST_URL и UPSTASH_REDIS_REST_TOKEN. Чтобы удалить историю, скажите навыку: «Забудь наши прошлые диалоги».
 
 КАК ПРОВЕРИТЬ БЕЗ ПРОГРАММИРОВАНИЯ
 
